@@ -10,6 +10,7 @@ export function ReceiverPage() {
   const [alternatives, setAlternatives] = useState<string[]>([]);
   const [bootError, setBootError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const channel = useChannel("receiver", code);
 
   useEffect(() => {
@@ -32,11 +33,25 @@ export function ReceiverPage() {
 
   async function newSession() {
     setCopied(false);
+    if (code) {
+      await fetch(`/api/sessions/${code}/expire`, { method: "POST" }).catch(() => undefined);
+    }
     const next = await bootReceiverSession(true);
     const target = await joinTarget(next);
     setCode(next);
     setUrl(target.url);
     setAlternatives(target.alternatives);
+  }
+
+  async function download() {
+    if (!code || channel.rows.length === 0 || downloading) return;
+    setDownloading(true);
+    try {
+      const { downloadRows } = await import("../download");
+      await downloadRows(code, channel.rows);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   async function copyUrl() {
@@ -96,10 +111,20 @@ export function ReceiverPage() {
         <section className="card feed">
           <div className="feed-head">
             <h2>Kiriman</h2>
-            <span>{channel.rows.length}</span>
+            <div className="feed-tools">
+              <button
+                type="button"
+                className="ghost"
+                disabled={!code || channel.rows.length === 0 || downloading}
+                onClick={download}
+              >
+                {downloading ? "Mengunduh" : "Unduh Excel"}
+              </button>
+              <span>{channel.rows.length}</span>
+            </div>
           </div>
           {channel.rows.length === 0 ? (
-            <p className="empty">Belum ada kiriman. Teks dari HP akan muncul di sini.</p>
+            <p className="empty">Belum ada kiriman. Teks atau kode dari HP akan muncul di sini.</p>
           ) : (
             <div className="table-wrap">
               <table>

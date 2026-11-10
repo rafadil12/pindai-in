@@ -22,4 +22,5 @@ export type ServerMessage =
   | { type: "row"; row: Row }
   | { type: "presence"; receivers: number; senders: number }
   | { type: "ack"; id: string }
+  | { type: "expired" }
   | { type: "error"; message: string };

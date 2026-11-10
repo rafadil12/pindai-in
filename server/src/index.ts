@@ -15,6 +15,7 @@ type Session = {
   code: string;
   createdAt: string;
   rows: Row[];
+  expired: boolean;
   receivers: Set<WebSocket>;
   senders: Set<WebSocket>;
 };
@@ -40,6 +41,23 @@ function broadcast(session: Session, message: ServerMessage) {
   for (const ws of [...session.receivers, ...session.senders]) {
     send(ws, message);
   }
+}
+
+function sendThenClose(ws: WebSocket, message: ServerMessage) {
+  if (ws.readyState !== WebSocket.OPEN) {
+    ws.close();
+    return;
+  }
+  ws.send(JSON.stringify(message), () => ws.close());
+}
+
+function expireSession(session: Session) {
+  if (session.expired) return;
+  session.expired = true;
+  const sockets = [...session.receivers, ...session.senders];
+  session.receivers.clear();
+  session.senders.clear();
+  for (const ws of sockets) sendThenClose(ws, { type: "expired" });
 }
 
 function presence(session: Session): ServerMessage {
@@ -97,6 +115,7 @@ const server = http.createServer((req, res) => {
       code: makeCode(),
       createdAt: new Date().toISOString(),
       rows: [],
+      expired: false,
       receivers: new Set(),
       senders: new Set(),
     };
@@ -110,11 +129,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const expireMatch = url.pathname.match(/^\/api\/sessions\/([A-Z2-9]{6})\/expire$/);
+  if (req.method === "POST" && expireMatch) {
+    const session = sessions.get(expireMatch[1]);
+    if (!session) {
+      json(res, 404, { error: "Sesi tidak ditemukan" });
+      return;
+    }
+    expireSession(session);
+    json(res, 200, { code: session.code, expired: true });
+    return;
+  }
+
   const match = url.pathname.match(/^\/api\/sessions\/([A-Z2-9]{6})$/);
   if (req.method === "GET" && match) {
     const session = sessions.get(match[1]);
     if (!session) {
       json(res, 404, { error: "Sesi tidak ditemukan" });
+      return;
+    }
+    if (session.expired) {
+      json(res, 410, { error: "Sesi ditutup", expired: true });
       return;
     }
     json(res, 200, {
@@ -144,6 +179,11 @@ wss.on("connection", (ws, req) => {
     return;
   }
 
+  if (session.expired) {
+    sendThenClose(ws, { type: "expired" });
+    return;
+  }
+
   const bucket = role === "receiver" ? session.receivers : session.senders;
   bucket.add(ws);
   send(ws, state(session));
@@ -160,6 +200,10 @@ wss.on("connection", (ws, req) => {
       return;
     }
     if (message.type !== "submit") return;
+    if (session.expired) {
+      send(ws, { type: "expired" });
+      return;
+    }
 
     const id = (message.id ?? "").trim();
     const text = (message.text ?? "").trim().slice(0, MAX_TEXT);
