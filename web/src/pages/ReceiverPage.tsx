@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { cellText, columnsFor } from "../../../shared/form.ts";
+import type { JobForm, Row } from "../../../shared/types.ts";
 import { bootReceiverSession, joinTarget } from "../session";
 import { useChannel } from "../useChannel";
+import { FormEditor } from "./FormEditor";
 import { Shell, formatTime } from "./Shell";
 
 export function ReceiverPage() {
@@ -47,8 +50,9 @@ export function ReceiverPage() {
     if (!code || channel.rows.length === 0 || downloading) return;
     setDownloading(true);
     try {
+      if (!channel.form) return;
       const { downloadRows } = await import("../download");
-      await downloadRows(code, channel.rows);
+      await downloadRows(code, channel.form, channel.rows);
     } finally {
       setDownloading(false);
     }
@@ -124,31 +128,50 @@ export function ReceiverPage() {
             </div>
           </div>
           {channel.rows.length === 0 ? (
-            <p className="empty">Belum ada kiriman. Teks atau kode dari HP akan muncul di sini.</p>
+            <p className="empty">Belum ada kiriman. Isian dari HP akan muncul di sini.</p>
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Waktu</th>
-                    <th>Isi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {channel.rows.map((row, index) => (
-                    <tr key={row.id}>
-                      <td>{index + 1}</td>
-                      <td className="time">{formatTime(row.at)}</td>
-                      <td>{row.text}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RowTable rows={channel.rows} form={channel.form} />
           )}
         </section>
+
+        <FormEditor
+          form={channel.form}
+          connected={channel.connected}
+          problem={channel.problem}
+          onApply={channel.publishForm}
+        />
       </div>
     </Shell>
+  );
+}
+
+function RowTable({ rows, form }: { rows: Row[]; form: JobForm | null }) {
+  if (!form) return null;
+  const columns = columnsFor(form, rows);
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Waktu</th>
+            {columns.map((column) => (
+              <th key={column.id}>{column.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={row.id}>
+              <td>{index + 1}</td>
+              <td className="time">{formatTime(row.at)}</td>
+              {columns.map((column) => (
+                <td key={column.id}>{cellText(row, column.id)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

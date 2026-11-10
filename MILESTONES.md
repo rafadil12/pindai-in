@@ -2,13 +2,13 @@
 
 Pindai In dibangun dari atas ke bawah. Milestone berikutnya memakai hasil yang sudah jalan di milestone sebelumnya.
 
-Yang ada di kode sekarang: **M2 — Barcode dan berkas Excel**.
+Yang ada di kode sekarang: **M3 — Formulir pekerjaan**.
 
 | | Milestone | Hasil yang terlihat |
 |---|---|---|
 | selesai | [M1 Saluran langsung](#m1--saluran-langsung) | QR di komputer, teks dari HP masuk ke tabel |
-| sekarang | [M2 Barcode dan Excel](#m2--barcode-dan-berkas-excel) | Kamera membaca kode barang, tabel diunduh sebagai `.xlsx` |
-| | [M3 Formulir pekerjaan](#m3--formulir-pekerjaan) | Satu pekerjaan punya formulir sendiri |
+| selesai | [M2 Barcode dan Excel](#m2--barcode-dan-berkas-excel) | Kamera membaca kode barang, tabel diunduh sebagai `.xlsx` |
+| sekarang | [M3 Formulir pekerjaan](#m3--formulir-pekerjaan) | Satu pekerjaan punya formulir sendiri |
 | | [M4 Antrean offline](#m4--antrean-offline) | Sinyal putus tidak menghilangkan kiriman |
 | | [M5 Terkunci di perangkat](#m5--terkunci-di-perangkat) | Server hanya meneruskan isi yang terkunci |
 | | [M6 Google Sheets](#m6--google-sheets) | Baris masuk ke spreadsheet yang dipilih |

@@ -118,7 +118,7 @@ export function NfcFill({ onValue }: { onValue: (value: string) => void }) {
       <p className="hint">
         {listening
           ? "Siap. Tempelkan tag ke bagian belakang HP."
-          : "Tekan tombol, izinkan NFC, lalu tempelkan tag. Kalau tag tidak berisi teks, yang diisi adalah UID chip. Nilainya masih bisa diperiksa."}
+          : "Tekan tombol, izinkan NFC, lalu tempelkan tag. Nilainya masuk ke isian yang sedang dipilih, atau ke isian teks pertama. Masih bisa diperiksa."}
       </p>
       {error && <p className="warn">{error}</p>}
     </div>

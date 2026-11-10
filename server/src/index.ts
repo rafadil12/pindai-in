@@ -2,11 +2,11 @@ import http from "node:http";
 import os from "node:os";
 import { randomBytes } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
-import type { Row, ServerMessage } from "../../shared/types.ts";
+import { defaultForm, parseForm, readValues } from "../../shared/form.ts";
+import type { JobForm, Row, ServerMessage } from "../../shared/types.ts";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const MAX_TEXT = 500;
 const MAX_ROWS = 1000;
 
 type Role = "receiver" | "sender";
@@ -14,6 +14,7 @@ type Role = "receiver" | "sender";
 type Session = {
   code: string;
   createdAt: string;
+  form: JobForm;
   rows: Row[];
   expired: boolean;
   receivers: Set<WebSocket>;
@@ -73,6 +74,7 @@ function state(session: Session): ServerMessage {
     type: "state",
     code: session.code,
     createdAt: session.createdAt,
+    form: session.form,
     rows: session.rows,
     receivers: session.receivers.size,
     senders: session.senders.size,
@@ -114,6 +116,7 @@ const server = http.createServer((req, res) => {
     const session: Session = {
       code: makeCode(),
       createdAt: new Date().toISOString(),
+      form: defaultForm(),
       rows: [],
       expired: false,
       receivers: new Set(),
@@ -155,6 +158,7 @@ const server = http.createServer((req, res) => {
     json(res, 200, {
       code: session.code,
       createdAt: session.createdAt,
+      form: session.form,
       rows: session.rows,
       receivers: session.receivers.size,
       senders: session.senders.size,
@@ -191,32 +195,47 @@ wss.on("connection", (ws, req) => {
 
   ws.on("message", (data) => {
     const raw = data.toString();
-    if (raw.length > 8000 || role !== "sender") return;
+    if (raw.length > 20000) return;
 
-    let message: { type?: string; id?: string; text?: string };
+    let message: { type?: string; id?: string; values?: unknown; form?: unknown };
     try {
-      message = JSON.parse(raw) as { type?: string; id?: string; text?: string };
+      message = JSON.parse(raw) as { type?: string; id?: string; values?: unknown; form?: unknown };
     } catch {
       return;
     }
-    if (message.type !== "submit") return;
     if (session.expired) {
       send(ws, { type: "expired" });
       return;
     }
 
+    if (role === "receiver" && message.type === "form") {
+      const parsed = parseForm(message.form);
+      if (!parsed.ok) {
+        send(ws, { type: "error", message: parsed.error });
+        return;
+      }
+      session.form = parsed.value;
+      broadcast(session, { type: "form", form: parsed.value });
+      return;
+    }
+
+    if (role !== "sender" || message.type !== "submit") return;
     const id = (message.id ?? "").trim();
-    const text = (message.text ?? "").trim().slice(0, MAX_TEXT);
-    if (!id || !text) {
-      send(ws, { type: "error", message: "Teks kosong" });
+    if (!id || id.length > 64) {
+      send(ws, { type: "error", message: "Kiriman tidak valid." });
       return;
     }
     if (session.rows.some((row) => row.id === id)) {
       send(ws, { type: "ack", id });
       return;
     }
+    const parsed = readValues(session.form, message.values);
+    if (!parsed.ok) {
+      send(ws, { type: "error", message: parsed.error });
+      return;
+    }
 
-    const row: Row = { id, text, at: new Date().toISOString() };
+    const row: Row = { id, at: new Date().toISOString(), cells: parsed.value };
     session.rows.push(row);
     if (session.rows.length > MAX_ROWS) session.rows.shift();
     broadcast(session, { type: "row", row });

@@ -1,6 +1,6 @@
 # Pindai In
 
-Aplikasi tangkap data di HP yang masuk langsung ke komputer. Urutan pembuatannya ada di [MILESTONES.md](MILESTONES.md). Yang berjalan sekarang adalah M2: halaman kirim membaca barcode atau QR, dan penerima mengunduh tabel sebagai `.xlsx`. QR untuk memasangkan HP tetap tautan yang dibuka kamera HP.
+Aplikasi tangkap data di HP yang masuk langsung ke komputer. Urutan pembuatannya ada di [MILESTONES.md](MILESTONES.md). Yang berjalan sekarang adalah M3: laptop menyusun formulir pekerjaan, dan HP menggambar isian dari situ. Satu kiriman menjadi satu baris dengan banyak kolom. QR untuk memasangkan HP tetap tautan yang dibuka kamera HP.
 
 ## Menjalankan
 
@@ -15,7 +15,9 @@ HP harus satu Wi-Fi dengan komputer. Pindai QR dengan kamera HP, atau buka alama
 
 Tombol **Pindai kode** memakai kamera langsung di `localhost` atau HTTPS. Lewat alamat IP, pakai **Ambil foto kode**. Nilai yang terisi masih bisa diubah sebelum dikirim.
 
-**Sesi baru** di laptop menutup sesi yang sedang dipegang HP. HP lalu menampilkan **Pindai kode sesi** untuk QR yang baru, atau kolom kode 6 karakter. **Tempel tag NFC** mengisi teks yang tersimpan di tag. Kalau tag tidak berisi teks, yang diisi adalah UID chip. Itu hanya jalan di Chrome Android setelah peringatan sertifikat diterima. iPhone tidak bisa membaca NFC dari halaman web.
+Di laptop, bagian **Susunan isian** mengatur nama formulir dan isiannya: teks, angka, tanggal, centang, pilihan, atau barcode. **Pakai formulir** mengganti layar HP tanpa membuat sesi baru.
+
+**Sesi baru** di laptop menutup sesi yang sedang dipegang HP. HP lalu menampilkan **Pindai kode sesi** untuk QR yang baru, atau kolom kode 6 karakter. **Tempel tag NFC** mengisi isian yang sedang dipilih. Kalau tidak ada yang dipilih, isian teks pertama yang terisi. Tag tanpa teks mengisi UID chip. Itu hanya jalan di Chrome Android setelah peringatan sertifikat diterima. iPhone tidak bisa membaca NFC dari halaman web.
 
 ## Isi repo
 
