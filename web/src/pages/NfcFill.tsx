@@ -4,13 +4,12 @@ const MAX_TEXT = 500;
 
 type NdefRecord = {
   recordType: string;
-  data: DataView;
+  encoding?: string | null;
+  data?: DataView | null;
 };
 
-type NdefReaderInstance = {
+type NdefReaderInstance = EventTarget & {
   scan: (options?: { signal?: AbortSignal }) => Promise<void>;
-  onreading: ((event: { message: { records: NdefRecord[] } }) => void) | null;
-  onreadingerror: (() => void) | null;
 };
 
 const URL_PREFIX = [
@@ -69,32 +68,33 @@ export function NfcFill({ onValue }: { onValue: (value: string) => void }) {
 
   async function start() {
     setError("");
-    const Reader = (window as Window & { NDEFReader?: new () => NdefReaderInstance }).NDEFReader;
-    if (!Reader) {
-      setError("Browser ini tidak bisa membaca NFC. Pakai Chrome di Android.");
+    if (!window.isSecureContext) {
+      setError("Halaman ini masih HTTP. Buka alamat https dari QR laptop, izinkan peringatan sertifikat, lalu coba lagi.");
       return;
     }
-    if (!window.isSecureContext) {
-      setError("NFC butuh halaman HTTPS. Lewat alamat HTTP, tag tidak bisa dibaca.");
+    const Reader = (window as Window & { NDEFReader?: new () => NdefReaderInstance }).NDEFReader;
+    if (!Reader) {
+      setError("Browser ini tidak bisa membaca NFC. Pakai Chrome di Android, bukan iPhone.");
       return;
     }
 
     const ndef = new Reader();
     const controller = new AbortController();
     abortRef.current = controller;
+    ndef.addEventListener("reading", (event) => {
+      const records = (event as Event & { message?: { records?: NdefRecord[] } }).message?.records ?? [];
+      const value = textFromRecords(records).slice(0, MAX_TEXT);
+      if (!value) {
+        setError("Tag terbaca, tetapi tidak ada teks.");
+        return;
+      }
+      onValueRef.current(value);
+      stop();
+    });
+    ndef.addEventListener("readingerror", () => setError("Tag tidak terbaca. Tempel lagi."));
     setListening(true);
     try {
       await ndef.scan({ signal: controller.signal });
-      ndef.onreading = (event) => {
-        const value = textFromRecords(event.message.records).slice(0, MAX_TEXT);
-        if (!value) {
-          setError("Tag terbaca, tetapi tidak ada teks.");
-          return;
-        }
-        onValueRef.current(value);
-        stop();
-      };
-      ndef.onreadingerror = () => setError("Tag tidak terbaca. Tempel lagi.");
     } catch {
       if (controller.signal.aborted) return;
       stop();
@@ -109,7 +109,11 @@ export function NfcFill({ onValue }: { onValue: (value: string) => void }) {
           {listening ? "Berhenti NFC" : "Tempel tag NFC"}
         </button>
       </div>
-      <p className="hint">Tempel tag ke HP. Nilainya mengisi kotak, lalu masih bisa diperiksa.</p>
+      <p className="hint">
+        {listening
+          ? "Siap. Tempelkan tag ke bagian belakang HP."
+          : "Tekan tombol, izinkan NFC, lalu tempelkan tag. Nilainya masih bisa diperiksa."}
+      </p>
       {error && <p className="warn">{error}</p>}
     </div>
   );
@@ -124,19 +128,33 @@ function textFromRecords(records: NdefRecord[]) {
 }
 
 function textFromRecord(record: NdefRecord) {
-  const bytes = new Uint8Array(record.data.buffer, record.data.byteOffset, record.data.byteLength);
+  const bytes = recordBytes(record);
+  if (bytes.length === 0) return "";
+  if (record.recordType === "mime") {
+    return new TextDecoder(record.encoding || "utf-8").decode(bytes).replaceAll("\u0000", "").trim();
+  }
   if (record.recordType === "text") {
-    if (bytes.length === 0) return "";
+    if (record.encoding) {
+      return new TextDecoder(record.encoding).decode(bytes).replaceAll("\u0000", "").trim();
+    }
     const languageLength = bytes[0] & 0x3f;
-    return new TextDecoder().decode(bytes.subarray(Math.min(bytes.length, 1 + languageLength))).trim();
+    const start = 1 + languageLength;
+    if (start >= bytes.length) return "";
+    const encoding = bytes[0] & 0x80 ? "utf-16" : "utf-8";
+    return new TextDecoder(encoding).decode(bytes.subarray(start)).trim();
   }
-  if (record.recordType === "url") {
-    if (bytes.length === 0) return "";
-    const prefix = URL_PREFIX[bytes[0]] ?? "";
-    return `${prefix}${new TextDecoder().decode(bytes.subarray(1))}`.trim();
-  }
-  if (record.recordType === "absolute-url" || record.recordType === "mime") {
-    return new TextDecoder().decode(bytes).trim();
+  if (record.recordType === "url" || record.recordType === "absolute-url") {
+    const plain = new TextDecoder().decode(bytes).trim();
+    if (/^[a-z][a-z0-9+.-]*:/i.test(plain)) return plain;
+    if (bytes[0] < URL_PREFIX.length) {
+      return `${URL_PREFIX[bytes[0]]}${new TextDecoder().decode(bytes.subarray(1))}`.trim();
+    }
+    return plain;
   }
   return "";
+}
+
+function recordBytes(record: NdefRecord) {
+  if (!record.data) return new Uint8Array();
+  return new Uint8Array(record.data.buffer, record.data.byteOffset, record.data.byteLength);
 }
