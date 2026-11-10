@@ -67,6 +67,20 @@ button.ghost:disabled {
 
 .capture { display: grid; gap: 0.7rem; }
 
+.session-join { display: grid; gap: 0.7rem; margin-top: 1rem; }
+
+input.code-entry {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  color: var(--ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 label.file-btn {
   position: relative;
   display: inline-flex;

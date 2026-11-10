@@ -3,7 +3,21 @@ import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser"
 
 const MAX_TEXT = 500;
 
-export function CodeScan({ onValue }: { onValue: (value: string) => void }) {
+export function CodeScan({
+  onValue,
+  scanLabel = "Pindai kode",
+  photoLabel = "Ambil foto kode",
+  hint = "Hasil pindaian mengisi kotak di bawah. Periksa dulu, baru kirim.",
+  insecureMessage = "Kamera langsung hanya jalan di halaman aman. Ambil foto kode, atau ketik nilainya.",
+  missMessage = "Kode tidak terbaca dari foto itu. Coba lagi, atau ketik nilainya.",
+}: {
+  onValue: (value: string) => void;
+  scanLabel?: string;
+  photoLabel?: string;
+  hint?: string;
+  insecureMessage?: string;
+  missMessage?: string;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onValueRef = useRef(onValue);
   const [scanning, setScanning] = useState(false);
@@ -43,7 +57,7 @@ export function CodeScan({ onValue }: { onValue: (value: string) => void }) {
   function start() {
     setError("");
     if (!window.isSecureContext) {
-      setError("Kamera langsung hanya jalan di halaman aman. Ambil foto kode, atau ketik nilainya.");
+      setError(insecureMessage);
       return;
     }
     setScanning(true);
@@ -59,12 +73,12 @@ export function CodeScan({ onValue }: { onValue: (value: string) => void }) {
       const result = await new BrowserMultiFormatReader().decodeFromImageUrl(url);
       const value = result.getText().trim().slice(0, MAX_TEXT);
       if (!value) {
-        setError("Kode tidak terbaca dari foto itu. Coba lagi, atau ketik nilainya.");
+        setError(missMessage);
         return;
       }
       onValueRef.current(value);
     } catch {
-      setError("Kode tidak terbaca dari foto itu. Coba lagi, atau ketik nilainya.");
+      setError(missMessage);
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -74,10 +88,10 @@ export function CodeScan({ onValue }: { onValue: (value: string) => void }) {
     <div className="capture">
       <div className="row-actions">
         <button type="button" className="ghost" onClick={scanning ? () => setScanning(false) : start}>
-          {scanning ? "Berhenti" : "Pindai kode"}
+          {scanning ? "Berhenti" : scanLabel}
         </button>
         <label className="file-btn">
-          Ambil foto kode
+          {photoLabel}
           <input type="file" accept="image/*" capture="environment" onChange={onPhoto} />
         </label>
       </div>
@@ -86,7 +100,7 @@ export function CodeScan({ onValue }: { onValue: (value: string) => void }) {
           <video ref={videoRef} muted playsInline autoPlay />
         </div>
       )}
-      <p className="hint">Hasil pindaian mengisi kotak di bawah. Periksa dulu, baru kirim.</p>
+      <p className="hint">{hint}</p>
       {error && <p className="warn">{error}</p>}
     </div>
   );

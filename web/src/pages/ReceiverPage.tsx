@@ -33,6 +33,9 @@ export function ReceiverPage() {
 
   async function newSession() {
     setCopied(false);
+    if (code) {
+      await fetch(`/api/sessions/${code}/expire`, { method: "POST" }).catch(() => undefined);
+    }
     const next = await bootReceiverSession(true);
     const target = await joinTarget(next);
     setCode(next);

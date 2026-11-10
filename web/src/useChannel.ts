@@ -8,10 +8,12 @@ export function useChannel(role: Role, code: string | null) {
   const [receivers, setReceivers] = useState(0);
   const [senders, setSenders] = useState(0);
   const [connected, setConnected] = useState(false);
+  const [expired, setExpired] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const waiters = useRef(new Map<string, (ok: boolean) => void>());
 
   useEffect(() => {
+    setExpired(false);
     if (!code) return;
     let stopped = false;
     let socket: WebSocket | null = null;
@@ -48,6 +50,13 @@ export function useChannel(role: Role, code: string | null) {
         } else if (message.type === "ack") {
           waiters.current.get(message.id)?.(true);
           waiters.current.delete(message.id);
+        } else if (message.type === "expired") {
+          stopped = true;
+          setExpired(true);
+          setConnected(false);
+          for (const settle of waiters.current.values()) settle(false);
+          waiters.current.clear();
+          socket?.close();
         } else if (message.type === "error") {
           for (const [id, settle] of waiters.current) {
             settle(false);
@@ -91,5 +100,5 @@ export function useChannel(role: Role, code: string | null) {
       socket.send(JSON.stringify({ type: "submit", id, text }));
     });
 
-  return { rows, receivers, senders, connected, submit };
+  return { rows, receivers, senders, connected, expired, submit };
 }
