@@ -7,6 +7,24 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-10
+
+### Added
+
+- Halaman kirim membaca barcode dan QR lewat kamera, dan nilainya masih bisa diubah sebelum dikirim.
+- Kode bisa diambil dari foto bila kamera langsung tidak tersedia.
+- Penerima mengunduh tabel sebagai berkas Excel berisi nomor, waktu, dan isi.
+- Sesi baru di laptop menutup sesi di HP, lalu HP meminta kode sesi yang baru.
+- Tombol NFC mengisi teks dari tag. Kalau tag tidak berisi teks, yang diisi adalah UID chip.
+
+### Changed
+
+- Server pengembangan melayani HTTPS supaya Chrome di Android bisa membaca NFC.
+
+### Fixed
+
+- ID kiriman tetap dibuat saat halaman dibuka lewat alamat IP.
+
 ## [0.1.0] - 2026-11-10
 
 ### Added
