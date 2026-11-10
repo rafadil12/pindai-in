@@ -15,7 +15,7 @@ HP harus satu Wi-Fi dengan komputer. Pindai QR dengan kamera HP, atau buka alama
 
 Tombol **Pindai kode** memakai kamera langsung di `localhost` atau HTTPS. Lewat alamat IP, pakai **Ambil foto kode**. Nilai yang terisi masih bisa diubah sebelum dikirim.
 
-**Sesi baru** di laptop menutup sesi yang sedang dipegang HP. HP lalu menampilkan **Pindai kode sesi** untuk QR yang baru, atau kolom kode 6 karakter. **Tempel tag NFC** mengisi nilai dari tag. Itu hanya jalan di Chrome Android setelah peringatan sertifikat diterima. iPhone tidak bisa membaca NFC dari halaman web.
+**Sesi baru** di laptop menutup sesi yang sedang dipegang HP. HP lalu menampilkan **Pindai kode sesi** untuk QR yang baru, atau kolom kode 6 karakter. **Tempel tag NFC** mengisi teks yang tersimpan di tag. Kalau tag tidak berisi teks, yang diisi adalah UID chip. Itu hanya jalan di Chrome Android setelah peringatan sertifikat diterima. iPhone tidak bisa membaca NFC dari halaman web.
 
 ## Isi repo
 

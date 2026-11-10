@@ -4,8 +4,15 @@ const MAX_TEXT = 500;
 
 type NdefRecord = {
   recordType: string;
+  mediaType?: string | null;
   encoding?: string | null;
   data?: DataView | null;
+  toRecords?: () => NdefRecord[];
+};
+
+type NdefReading = Event & {
+  serialNumber?: string;
+  message?: { records?: NdefRecord[] };
 };
 
 type NdefReaderInstance = EventTarget & {
@@ -82,10 +89,9 @@ export function NfcFill({ onValue }: { onValue: (value: string) => void }) {
     const controller = new AbortController();
     abortRef.current = controller;
     ndef.addEventListener("reading", (event) => {
-      const records = (event as Event & { message?: { records?: NdefRecord[] } }).message?.records ?? [];
-      const value = textFromRecords(records).slice(0, MAX_TEXT);
+      const value = valueFromReading(event as NdefReading);
       if (!value) {
-        setError("Tag terbaca, tetapi tidak ada teks.");
+        setError("Tag terbaca, tetapi browser tidak memberi teks maupun UID.");
         return;
       }
       onValueRef.current(value);
@@ -112,14 +118,30 @@ export function NfcFill({ onValue }: { onValue: (value: string) => void }) {
       <p className="hint">
         {listening
           ? "Siap. Tempelkan tag ke bagian belakang HP."
-          : "Tekan tombol, izinkan NFC, lalu tempelkan tag. Nilainya masih bisa diperiksa."}
+          : "Tekan tombol, izinkan NFC, lalu tempelkan tag. Kalau tag tidak berisi teks, yang diisi adalah UID chip. Nilainya masih bisa diperiksa."}
       </p>
       {error && <p className="warn">{error}</p>}
     </div>
   );
 }
 
-function textFromRecords(records: NdefRecord[]) {
+function valueFromReading(event: NdefReading) {
+  const text = textFromRecords(event.message?.records ?? []);
+  const value = text || formatUid(event.serialNumber);
+  return value.slice(0, MAX_TEXT);
+}
+
+function formatUid(serialNumber?: string) {
+  const raw = (serialNumber ?? "").trim();
+  if (!raw) return "";
+  const compact = raw.replace(/[:\s-]/g, "");
+  if (/^[0-9a-f]+$/i.test(compact) && compact.length >= 4 && compact.length % 2 === 0) {
+    return compact.toUpperCase();
+  }
+  return raw.toUpperCase();
+}
+
+function textFromRecords(records: NdefRecord[]): string {
   for (const record of records) {
     const text = textFromRecord(record);
     if (text) return text;
@@ -127,10 +149,14 @@ function textFromRecords(records: NdefRecord[]) {
   return "";
 }
 
-function textFromRecord(record: NdefRecord) {
+function textFromRecord(record: NdefRecord): string {
+  if (record.recordType === "smart-poster" && record.toRecords) {
+    return textFromRecords(record.toRecords());
+  }
   const bytes = recordBytes(record);
   if (bytes.length === 0) return "";
-  if (record.recordType === "mime") {
+  const mediaType = record.mediaType || (record.recordType.includes("/") ? record.recordType : "");
+  if (record.recordType === "mime" || mediaType.startsWith("text/")) {
     return new TextDecoder(record.encoding || "utf-8").decode(bytes).replaceAll("\u0000", "").trim();
   }
   if (record.recordType === "text") {
