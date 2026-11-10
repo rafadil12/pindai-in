@@ -4,6 +4,12 @@ import { Shell, formatTime } from "./Shell";
 
 const CodeScan = lazy(() => import("./CodeScan").then((module) => ({ default: module.CodeScan })));
 
+function makeId() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export function SenderPage({ code }: { code: string }) {
   const [phase, setPhase] = useState<"memeriksa" | "siap" | "hilang" | "gagal">("memeriksa");
   const [text, setText] = useState("");
@@ -32,14 +38,19 @@ export function SenderPage({ code }: { code: string }) {
     if (!value || sending) return;
     setSending(true);
     setNotice("");
-    const ok = await channel.submit(crypto.randomUUID(), value);
-    setSending(false);
-    if (ok) {
-      setText("");
-      setNotice("Masuk ke komputer.");
-      return;
+    try {
+      const ok = await channel.submit(makeId(), value);
+      setSending(false);
+      if (ok) {
+        setText("");
+        setNotice("Masuk ke komputer.");
+        return;
+      }
+      setNotice("Belum terkirim. Cek sambungan, lalu kirim lagi.");
+    } catch {
+      setSending(false);
+      setNotice("Belum terkirim. Cek sambungan, lalu kirim lagi.");
     }
-    setNotice("Belum terkirim. Cek sambungan, lalu kirim lagi.");
   }
 
   return (
