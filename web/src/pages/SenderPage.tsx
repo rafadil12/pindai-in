@@ -1,6 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { lazy, Suspense, useEffect, useState, type FormEvent } from "react";
 import { useChannel } from "../useChannel";
 import { Shell, formatTime } from "./Shell";
+
+const CodeScan = lazy(() => import("./CodeScan").then((module) => ({ default: module.CodeScan })));
 
 export function SenderPage({ code }: { code: string }) {
   const [phase, setPhase] = useState<"memeriksa" | "siap" | "hilang" | "gagal">("memeriksa");
@@ -59,13 +61,21 @@ export function SenderPage({ code }: { code: string }) {
         )}
         {phase === "siap" && (
           <form onSubmit={onSubmit}>
+            <Suspense fallback={<p className="hint">Menyiapkan kamera.</p>}>
+              <CodeScan
+                onValue={(value) => {
+                  setText(value);
+                  setNotice("Kode terisi. Periksa, lalu kirim.");
+                }}
+              />
+            </Suspense>
             <label htmlFor="isi">Isi kiriman</label>
             <textarea
               id="isi"
               value={text}
               maxLength={500}
               rows={4}
-              placeholder="Tulis teks yang mau masuk ke tabel"
+              placeholder="Tulis atau pindai kode barang"
               onChange={(event) => setText(event.target.value)}
             />
             <button type="submit" disabled={!channel.connected || sending || text.trim() === ""}>

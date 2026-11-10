@@ -53,6 +53,57 @@ button.ghost {
 
 button.ghost:hover { background: rgba(255, 255, 255, 0.5); }
 
+button.ghost:disabled {
+  background: transparent;
+  color: #b7aa96;
+  border-color: var(--line);
+}
+
+.feed-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.capture { display: grid; gap: 0.7rem; }
+
+label.file-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.7rem 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+label.file-btn:hover { background: rgba(255, 255, 255, 0.5); }
+
+label.file-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 0.8rem;
+  background: #1a1f1c;
+}
+
+.preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 button:focus-visible,
 textarea:focus-visible,
 a:focus-visible {
